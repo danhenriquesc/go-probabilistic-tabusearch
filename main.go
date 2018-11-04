@@ -8,12 +8,15 @@ import (
 	"strconv"
 	"math"
 	"time"
+	"math/rand"
 )
 
 const problemFile = "berlin52.tsp.txt"
 const problemSize = 52
 const architectureBits = 64
-const maxTabuSize = 10
+const maxTabuSize = 50
+const iterations = 2000
+const pertubation = 1
 
 type City struct {
 	x, y float64
@@ -55,12 +58,16 @@ func PrintCities(cities *[problemSize + 1]City) {
 	}
 }
 
-func CalculateDistance(a, b City, ch chan float64) {
-	ch <- math.Sqrt(math.Pow(a.x - b.x, 2) + math.Pow(a.y - b.y, 2))
+func Nint(n float64) int {
+	return int(n + 0.5)
 }
 
-func CalculateDistances(distances *[problemSize + 1][problemSize + 1]float64, cities *[problemSize + 1]City) {
-	ch := make(chan float64)
+func CalculateDistance(a, b City, ch chan int) {
+	ch <- Nint(math.Sqrt(math.Pow(a.x - b.x, 2) + math.Pow(a.y - b.y, 2)))
+}
+
+func CalculateDistances(distances *[problemSize + 1][problemSize + 1]int, cities *[problemSize + 1]City) {
+	ch := make(chan int)
 	for i := 1; i <= problemSize; i++ {
 		for j := i + 1; j <= problemSize; j++ {
 			go CalculateDistance(cities[i], cities[j], ch)
@@ -72,6 +79,7 @@ func CalculateDistances(distances *[problemSize + 1][problemSize + 1]float64, ci
 	}	
 }
 
+/* ORDERED INITIAL */
 func NewInitialSolution() Solution {
 	initialSolution := Solution{}
 	for i := 1; i <= problemSize; i++ {
@@ -80,6 +88,56 @@ func NewInitialSolution() Solution {
 	return initialSolution
 }
 
+/* RAND INITIAL */
+func NewRandomInitialSolution() Solution {
+	initialSolution := Solution{}
+	rands := rand.Perm(problemSize)
+
+	for i := 1; i <= problemSize; i++ {
+		initialSolution[i] = rands[i-1] + 1
+	}
+
+	return initialSolution
+}
+
+/* GREEDY INITIAL */
+func newGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) Solution {
+	var visited [problemSize + 1]bool
+	initialSolution := Solution{}
+
+	current_city := 1
+	current_index := 1
+	initialSolution[current_index] = current_city
+	visited[current_city] = true
+	current_index++
+
+	all_visited := false
+
+	for all_visited != true {
+		min_distance := 1000000000
+		min_distance_city := -1
+		for i := 1; i <= problemSize; i++ {
+			if distances[current_city][i] < min_distance && visited[i] == false {
+				min_distance = distances[current_city][i]
+				min_distance_city = i
+			}
+		}
+
+		current_city = min_distance_city
+		initialSolution[current_index] = current_city
+		visited[current_city] = true
+		current_index++
+
+		all_visited = true
+		for i := 1; i <= problemSize; i++ {
+			all_visited = all_visited && visited[i]
+		}
+	}
+
+	return initialSolution
+}
+
+/* ALL */
 func GetNeighborhood(s *Solution) []Solution {
 	var neighbors []Solution
 
@@ -94,9 +152,38 @@ func GetNeighborhood(s *Solution) []Solution {
 	return neighbors
 }
 
-func Fitness(s *Solution, distances *[problemSize + 1][problemSize + 1]float64) float64 {
-	var fitness float64
+/* 2-OPT */
+func GetNeighborhood2opt(s *Solution) []Solution {
+	var neighbors []Solution
 
+	for i := 1; i <= problemSize; i++ {
+		for j := i + 1; j <= problemSize; j++ {
+			sn := *s
+
+			st := i
+			end := j
+			for st < end {
+				sn[st], sn[end] = sn[end], sn[st]
+				st++
+				end--
+			}
+
+			neighbors = append(neighbors, sn)
+		}
+	}
+
+	return neighbors
+}
+
+func GetNeighborhoodInit() []Solution {
+	var neighbors []Solution
+
+	return neighbors
+}
+
+func Fitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int) int {
+	var fitness int
+	
 	for i := 1; i < problemSize; i++ {
 		fitness += distances[s[i]][s[i+1]]
 	}
@@ -120,19 +207,23 @@ func Contains(needed string, tabuList *[]string) bool{
 }
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	start := time.Now()
 
 	var cities [problemSize + 1]City
-	var distances [problemSize + 1][problemSize + 1]float64
+	var distances [problemSize + 1][problemSize + 1]int
 
 	ReadProblem(&cities)
 	// PrintCities(&cities)
 
 	CalculateDistances(&distances, &cities)
 
-	initialSolution := NewInitialSolution()
+	initialSolution := newGreedyInitialSolution(&distances)
+	fmt.Println(initialSolution)
+
 	bestSolution := initialSolution
 	fitnessBestSolution := Fitness(&bestSolution, &distances)
+	fmt.Println(fitnessBestSolution)
 	bestCandidate := initialSolution
 	fitnessBestCandidate := fitnessBestSolution
 	
@@ -141,8 +232,14 @@ func main() {
 	// fmt.Println(tabuList)
 
 	x := 1
-	for x < 1000 {
-		neighborhood := GetNeighborhood(&bestCandidate)
+	for x < iterations {
+		neighborhood := GetNeighborhoodInit()
+
+		if x % pertubation == 0 {
+			neighborhood = GetNeighborhood(&bestCandidate)
+		} else {
+			neighborhood = GetNeighborhood2opt(&bestCandidate)
+		}
 
 		for _, candidate := range neighborhood {
 			fitnessCandidate := Fitness(&candidate, &distances)
