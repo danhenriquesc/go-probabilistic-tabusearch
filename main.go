@@ -14,9 +14,9 @@ import (
 const problemFile = "berlin52.tsp.txt"
 const problemSize = 52
 const architectureBits = 64
-const maxTabuSize = 10
-const iterations = 2000
-const pertubation = 30
+const maxTabuSize = 50
+const iterations = 700
+const pertubation = 3
 
 type City struct {
 	x, y float64
@@ -27,6 +27,7 @@ type Solution [problemSize + 1]int
 type FullSolution struct {
 	solution Solution
 	fitness int
+	i, j int
 }
 
 func Check(e error) {
@@ -106,7 +107,7 @@ func NewRandomInitialSolution() Solution {
 }
 
 /* GREEDY INITIAL */
-func newGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) Solution {
+func NewGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) Solution {
 	var visited [problemSize + 1]bool
 	initialSolution := Solution{}
 
@@ -164,7 +165,8 @@ func GetFullNeighborhood(s *FullSolution, distances *[problemSize + 1][problemSi
 		for j := i + 1; j <= problemSize; j++ {
 			sn := s.solution
 			sn[i], sn[j] = sn[j], sn[i]
-			fs := FullSolution{sn, FullFitness(&s.solution, distances, s.fitness, i, j)}
+			fs := FullSolution{sn, FullFitness(&s.solution, distances, s.fitness, i, j), i, j}
+			// fs := FullSolution{sn, Fitness(&sn, distances)}
 			neighbors = append(neighbors, fs)
 		}
 	}
@@ -200,7 +202,7 @@ func GetFullNeighborhood2opt(s *FullSolution, distances *[problemSize + 1][probl
 	var neighbors []FullSolution
 
 	for i := 1; i <= problemSize; i++ {
-		for j := i + 1; j <= problemSize; j++ {
+		for j := i + 2; j <= problemSize; j++ {
 			sn := s.solution
 
 			st := i
@@ -211,7 +213,8 @@ func GetFullNeighborhood2opt(s *FullSolution, distances *[problemSize + 1][probl
 				end--
 			}
 
-			fs := FullSolution{sn, FullFitness2opt(&s.solution, distances, s.fitness, i, j)}
+			fs := FullSolution{sn, FullFitness2opt(&s.solution, distances, s.fitness, i, j), i, j}
+			// fs := FullSolution{sn, Fitness(&sn, distances)}
 			neighbors = append(neighbors, fs)
 		}
 	}
@@ -261,7 +264,7 @@ func Fitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int) int 
 func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
-	if j - 1 != 51 {
+	if j - i != problemSize - 1 {
 		if i > 1 {
 			fitness -= distances[s[i-1]][s[i]]
 			fitness += distances[s[i-1]][s[j]]
@@ -299,7 +302,7 @@ func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, 
 func FullFitness2opt(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
-	if j - 1 != 51 {
+	if j - i != problemSize - 1 {
 		if i > 1 {
 			fitness -= distances[s[i-1]][s[i]]
 			fitness += distances[s[i-1]][s[j]]
@@ -316,7 +319,7 @@ func FullFitness2opt(s *Solution, distances *[problemSize + 1][problemSize + 1]i
 			fitness += distances[s[i]][s[1]]
 		}
 	}
-
+	
 	return fitness
 }
 
@@ -326,6 +329,10 @@ func TokenizerSolution(s *Solution) string {
 
 func TokenizerFullSolution(fs *FullSolution) string {
 	return fmt.Sprint(*fs)
+}
+
+func TokenizerChange(fs *FullSolution) string {
+	return fmt.Sprint(fs.i,"|",fs.j)
 }
 
 func Contains(needed string, tabuList *[]string) bool{
@@ -348,9 +355,10 @@ func main() {
 
 	CalculateDistances(&distances, &cities)
 
-	initialSolution := newGreedyInitialSolution(&distances)
+	initialSolution := NewGreedyInitialSolution(&distances)
+	// initialSolution := NewRandomInitialSolution()
 	fitnessInitialSolution := Fitness(&initialSolution, &distances)
-	fullInitialSolution := FullSolution{initialSolution, fitnessInitialSolution}
+	fullInitialSolution := FullSolution{initialSolution, fitnessInitialSolution, 0, 0}
 
 	fmt.Println(initialSolution)
 
@@ -364,7 +372,7 @@ func main() {
 	fullBestCandidate := fullInitialSolution
 	
 	var tabuList []string
-	tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
+	// tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
 
 	x := 1
 	for x < iterations {
@@ -373,19 +381,21 @@ func main() {
 		// if x % 300 == 0 {
 		// 	PerturbNeighborhood(&bestCandidate)
 		// }
-
 		if x % pertubation == 0 {
 			neighborhood = GetFullNeighborhood(&fullBestCandidate, &distances)
 		} else {
 			neighborhood = GetFullNeighborhood2opt(&fullBestCandidate, &distances)
 		}
 
+		first := true
 		for _, candidate := range neighborhood {
 			// fitnessCandidate := Fitness(&candidate, &distances)
-			notTabu := !Contains(TokenizerFullSolution(&candidate), &tabuList)
+			// notTabu := !Contains(TokenizerFullSolution(&candidate), &tabuList)
+			notTabu := !Contains(TokenizerChange(&candidate), &tabuList)
 
-			if notTabu && candidate.fitness < fullBestCandidate.fitness {
+			if notTabu && (first || candidate.fitness < fullBestCandidate.fitness) {
 				fullBestCandidate = candidate
+				first = false
 			}
 		}
 
@@ -393,7 +403,7 @@ func main() {
 			fullBestSolution = fullBestCandidate
 		}
 
-		tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
+		tabuList = append(tabuList, TokenizerChange(&fullBestCandidate))
 		if len(tabuList) > maxTabuSize {
 			tabuList = tabuList[1:]
 		}
@@ -401,6 +411,7 @@ func main() {
 		// fmt.Println(fitnessBestSolution)
 
 		x += 1
+		fmt.Println(fullBestSolution.fitness, fullBestCandidate.fitness)
 	}
 
 	fmt.Println(fullBestSolution)
