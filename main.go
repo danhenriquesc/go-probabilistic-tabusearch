@@ -14,15 +14,20 @@ import (
 const problemFile = "berlin52.tsp.txt"
 const problemSize = 52
 const architectureBits = 64
-const maxTabuSize = 50
+const maxTabuSize = 10
 const iterations = 2000
-const pertubation = 1
+const pertubation = 30
 
 type City struct {
 	x, y float64
 }
 
 type Solution [problemSize + 1]int
+
+type FullSolution struct {
+	solution Solution
+	fitness int
+}
 
 func Check(e error) {
 	if e != nil {
@@ -152,6 +157,22 @@ func GetNeighborhood(s *Solution) []Solution {
 	return neighbors
 }
 
+func GetFullNeighborhood(s *FullSolution, distances *[problemSize + 1][problemSize + 1]int) []FullSolution {
+	var neighbors []FullSolution
+
+	for i := 1; i <= problemSize; i++ {
+		for j := i + 1; j <= problemSize; j++ {
+			sn := s.solution
+			sn[i], sn[j] = sn[j], sn[i]
+			fs := FullSolution{sn, FullFitness(&s.solution, distances, s.fitness, i, j)}
+			neighbors = append(neighbors, fs)
+		}
+	}
+
+	return neighbors
+}
+
+
 /* 2-OPT */
 func GetNeighborhood2opt(s *Solution) []Solution {
 	var neighbors []Solution
@@ -175,8 +196,52 @@ func GetNeighborhood2opt(s *Solution) []Solution {
 	return neighbors
 }
 
+func GetFullNeighborhood2opt(s *FullSolution, distances *[problemSize + 1][problemSize + 1]int) []FullSolution {
+	var neighbors []FullSolution
+
+	for i := 1; i <= problemSize; i++ {
+		for j := i + 1; j <= problemSize; j++ {
+			sn := s.solution
+
+			st := i
+			end := j
+			for st < end {
+				sn[st], sn[end] = sn[end], sn[st]
+				st++
+				end--
+			}
+
+			fs := FullSolution{sn, FullFitness2opt(&s.solution, distances, s.fitness, i, j)}
+			neighbors = append(neighbors, fs)
+		}
+	}
+
+	return neighbors
+}
+
+/* PERTURB */
+func PerturbNeighborhood(s *Solution) {
+	r1 := (rand.Int() % problemSize) + 1
+	r2 := (rand.Int() % problemSize) + 1
+
+	st := int(math.Min(float64(r1), float64(r2)))
+	end := int(math.Max(float64(r1), float64(r2)))
+
+	for st < end {
+		s[st], s[end] = s[end], s[st]
+		st++
+		end--
+	}
+}
+
 func GetNeighborhoodInit() []Solution {
 	var neighbors []Solution
+
+	return neighbors
+}
+
+func GetNeighborhoodFullInit() []FullSolution {
+	var neighbors []FullSolution
 
 	return neighbors
 }
@@ -193,8 +258,74 @@ func Fitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int) int 
 	return fitness
 }
 
+func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
+	fitness := current_fitness
+	
+	if j - 1 != 51 {
+		if i > 1 {
+			fitness -= distances[s[i-1]][s[i]]
+			fitness += distances[s[i-1]][s[j]]
+		} else {
+			fitness -= distances[s[problemSize]][s[i]]
+			fitness += distances[s[problemSize]][s[j]]
+		}
+
+		if j - i > 1 {
+			fitness -= distances[s[i]][s[i+1]]
+			fitness += distances[s[j]][s[i+1]]
+			
+			fitness -= distances[s[j-1]][s[j]]
+			fitness += distances[s[j-1]][s[i]]
+		}
+
+		if j < problemSize {
+			fitness -= distances[s[j]][s[j+1]]
+			fitness += distances[s[i]][s[j+1]]
+		} else {
+			fitness -= distances[s[j]][s[1]]
+			fitness += distances[s[i]][s[1]]
+		}
+	} else {
+		fitness -= distances[s[j-1]][s[j]]
+		fitness += distances[s[j-1]][s[1]]
+
+		fitness -= distances[s[1]][s[2]]
+		fitness += distances[s[j]][s[2]]
+	}
+
+	return fitness
+}
+
+func FullFitness2opt(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
+	fitness := current_fitness
+	
+	if j - 1 != 51 {
+		if i > 1 {
+			fitness -= distances[s[i-1]][s[i]]
+			fitness += distances[s[i-1]][s[j]]
+		} else {
+			fitness -= distances[s[problemSize]][s[i]]
+			fitness += distances[s[problemSize]][s[j]]
+		}
+
+		if j < problemSize {
+			fitness -= distances[s[j]][s[j+1]]
+			fitness += distances[s[i]][s[j+1]]
+		} else {
+			fitness -= distances[s[j]][s[1]]
+			fitness += distances[s[i]][s[1]]
+		}
+	}
+
+	return fitness
+}
+
 func TokenizerSolution(s *Solution) string {
 	return fmt.Sprint(*s)
+}
+
+func TokenizerFullSolution(fs *FullSolution) string {
+	return fmt.Sprint(*fs)
 }
 
 func Contains(needed string, tabuList *[]string) bool{
@@ -214,49 +345,55 @@ func main() {
 	var distances [problemSize + 1][problemSize + 1]int
 
 	ReadProblem(&cities)
-	// PrintCities(&cities)
 
 	CalculateDistances(&distances, &cities)
 
 	initialSolution := newGreedyInitialSolution(&distances)
+	fitnessInitialSolution := Fitness(&initialSolution, &distances)
+	fullInitialSolution := FullSolution{initialSolution, fitnessInitialSolution}
+
 	fmt.Println(initialSolution)
 
-	bestSolution := initialSolution
-	fitnessBestSolution := Fitness(&bestSolution, &distances)
-	fmt.Println(fitnessBestSolution)
-	bestCandidate := initialSolution
-	fitnessBestCandidate := fitnessBestSolution
+	// bestSolution := initialSolution
+	// fitnessBestSolution := Fitness(&bestSolution, &distances)
+	fullBestSolution := fullInitialSolution
+
+	fmt.Println(fullBestSolution)
+	// bestCandidate := initialSolution
+	// fitnessBestCandidate := fitnessBestSolution
+	fullBestCandidate := fullInitialSolution
 	
 	var tabuList []string
-	tabuList = append(tabuList, TokenizerSolution(&initialSolution))
-	// fmt.Println(tabuList)
+	tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
 
 	x := 1
 	for x < iterations {
-		neighborhood := GetNeighborhoodInit()
+		neighborhood := GetNeighborhoodFullInit()
+
+		// if x % 300 == 0 {
+		// 	PerturbNeighborhood(&bestCandidate)
+		// }
 
 		if x % pertubation == 0 {
-			neighborhood = GetNeighborhood(&bestCandidate)
+			neighborhood = GetFullNeighborhood(&fullBestCandidate, &distances)
 		} else {
-			neighborhood = GetNeighborhood2opt(&bestCandidate)
+			neighborhood = GetFullNeighborhood2opt(&fullBestCandidate, &distances)
 		}
 
 		for _, candidate := range neighborhood {
-			fitnessCandidate := Fitness(&candidate, &distances)
-			notTabu := !Contains(TokenizerSolution(&candidate), &tabuList)
+			// fitnessCandidate := Fitness(&candidate, &distances)
+			notTabu := !Contains(TokenizerFullSolution(&candidate), &tabuList)
 
-			if notTabu && fitnessCandidate < fitnessBestCandidate {
-				bestCandidate = candidate
-				fitnessBestCandidate = fitnessCandidate
+			if notTabu && candidate.fitness < fullBestCandidate.fitness {
+				fullBestCandidate = candidate
 			}
 		}
 
-		if fitnessBestCandidate < fitnessBestSolution {
-			bestSolution = bestCandidate
-			fitnessBestSolution = fitnessBestCandidate
+		if fullBestCandidate.fitness < fullBestSolution.fitness {
+			fullBestSolution = fullBestCandidate
 		}
 
-		tabuList = append(tabuList, TokenizerSolution(&bestCandidate))
+		tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
 		if len(tabuList) > maxTabuSize {
 			tabuList = tabuList[1:]
 		}
@@ -266,8 +403,8 @@ func main() {
 		x += 1
 	}
 
-	fmt.Println(bestSolution)
-	fmt.Println(fitnessBestSolution)
+	fmt.Println(fullBestSolution)
+	// fmt.Println(fitnessBestSolution)
 
 	fmt.Println(time.Since(start))
 }
