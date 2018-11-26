@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ import (
 	"math/rand"
 )
 
-const problemFile = "berlin52.tsp.txt"
+const problemFile = "instances/berlin52.tsp.txt"
 const problemSize = 52
 const architectureBits = 64
 const maxTabuSize = 50
@@ -344,7 +344,7 @@ func Contains(needed string, tabuList *[]string) bool{
 	return false
 }
 
-func main() {
+func Run() error {
 	rand.Seed(time.Now().UTC().UnixNano())
 	start := time.Now()
 
@@ -418,4 +418,6 @@ func main() {
 	// fmt.Println(fitnessBestSolution)
 
 	fmt.Println(time.Since(start))
+
+	return nil
 }
