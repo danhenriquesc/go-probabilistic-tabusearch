@@ -1,19 +1,14 @@
 package app
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
-	"strconv"
 	"math"
 	"time"
 	"math/rand"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constants"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/reading"
 )
 
-const problemFile = "instances/berlin52.tsp.txt"
-const problemSize = 52
-const architectureBits = 64
 const maxTabuSize = 50
 const iterations = 700
 const pertubation = 3
@@ -22,7 +17,7 @@ type City struct {
 	x, y float64
 }
 
-type Solution [problemSize + 1]int
+type Solution [constants.PROBLEM_SIZE + 1]int
 
 type FullSolution struct {
 	solution Solution
@@ -30,65 +25,19 @@ type FullSolution struct {
 	i, j int
 }
 
-func Check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-func ReadProblem(cities *[problemSize + 1]City) {
-	file, err := os.Open(problemFile)
-	Check(err)
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		words := strings.Fields(scanner.Text())
-		
-		index, err := strconv.ParseInt(words[0], 10, architectureBits)
-		Check(err)
-		x, err := strconv.ParseFloat(words[1], architectureBits)
-		Check(err)
-		y, err := strconv.ParseFloat(words[2], architectureBits)
-		Check(err)
-		
-		cities[index] = City{x, y}
-	}
-
-	Check(scanner.Err())
-}
-
-func PrintCities(cities *[problemSize + 1]City) {
-	for i := 1; i <= problemSize; i++ {
+func PrintCities(cities *[constants.PROBLEM_SIZE + 1]City) {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		fmt.Printf("City %d: %.2f x %.2f\n", i, cities[i].x, cities[i].y)
 	}
 }
 
-func Nint(n float64) int {
-	return int(n + 0.5)
-}
 
-func CalculateDistance(a, b City, ch chan int) {
-	ch <- Nint(math.Sqrt(math.Pow(a.x - b.x, 2) + math.Pow(a.y - b.y, 2)))
-}
 
-func CalculateDistances(distances *[problemSize + 1][problemSize + 1]int, cities *[problemSize + 1]City) {
-	ch := make(chan int)
-	for i := 1; i <= problemSize; i++ {
-		for j := i + 1; j <= problemSize; j++ {
-			go CalculateDistance(cities[i], cities[j], ch)
-
-			distance := <- ch
-			distances[i][j] = distance
-			distances[j][i] = distance
-		}
-	}	
-}
 
 /* ORDERED INITIAL */
 func NewInitialSolution() Solution {
 	initialSolution := Solution{}
-	for i := 1; i <= problemSize; i++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		initialSolution[i] = i
 	}
 	return initialSolution
@@ -97,9 +46,9 @@ func NewInitialSolution() Solution {
 /* RAND INITIAL */
 func NewRandomInitialSolution() Solution {
 	initialSolution := Solution{}
-	rands := rand.Perm(problemSize)
+	rands := rand.Perm(constants.PROBLEM_SIZE)
 
-	for i := 1; i <= problemSize; i++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		initialSolution[i] = rands[i-1] + 1
 	}
 
@@ -107,8 +56,8 @@ func NewRandomInitialSolution() Solution {
 }
 
 /* GREEDY INITIAL */
-func NewGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) Solution {
-	var visited [problemSize + 1]bool
+func NewGreedyInitialSolution(distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) Solution {
+	var visited [constants.PROBLEM_SIZE + 1]bool
 	initialSolution := Solution{}
 
 	current_city := 1
@@ -122,7 +71,7 @@ func NewGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) 
 	for all_visited != true {
 		min_distance := 1000000000
 		min_distance_city := -1
-		for i := 1; i <= problemSize; i++ {
+		for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 			if distances[current_city][i] < min_distance && visited[i] == false {
 				min_distance = distances[current_city][i]
 				min_distance_city = i
@@ -135,7 +84,7 @@ func NewGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) 
 		current_index++
 
 		all_visited = true
-		for i := 1; i <= problemSize; i++ {
+		for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 			all_visited = all_visited && visited[i]
 		}
 	}
@@ -147,8 +96,8 @@ func NewGreedyInitialSolution(distances *[problemSize + 1][problemSize + 1]int) 
 func GetNeighborhood(s *Solution) []Solution {
 	var neighbors []Solution
 
-	for i := 1; i <= problemSize; i++ {
-		for j := i + 1; j <= problemSize; j++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
+		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
 			sn := *s
 			sn[i], sn[j] = sn[j], sn[i]
 			neighbors = append(neighbors, sn)
@@ -158,11 +107,11 @@ func GetNeighborhood(s *Solution) []Solution {
 	return neighbors
 }
 
-func GetFullNeighborhood(s *FullSolution, distances *[problemSize + 1][problemSize + 1]int) []FullSolution {
+func GetFullNeighborhood(s *FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []FullSolution {
 	var neighbors []FullSolution
 
-	for i := 1; i <= problemSize; i++ {
-		for j := i + 1; j <= problemSize; j++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
+		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
 			sn := s.solution
 			sn[i], sn[j] = sn[j], sn[i]
 			fs := FullSolution{sn, FullFitness(&s.solution, distances, s.fitness, i, j), i, j}
@@ -179,8 +128,8 @@ func GetFullNeighborhood(s *FullSolution, distances *[problemSize + 1][problemSi
 func GetNeighborhood2opt(s *Solution) []Solution {
 	var neighbors []Solution
 
-	for i := 1; i <= problemSize; i++ {
-		for j := i + 1; j <= problemSize; j++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
+		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
 			sn := *s
 
 			st := i
@@ -198,11 +147,11 @@ func GetNeighborhood2opt(s *Solution) []Solution {
 	return neighbors
 }
 
-func GetFullNeighborhood2opt(s *FullSolution, distances *[problemSize + 1][problemSize + 1]int) []FullSolution {
+func GetFullNeighborhood2opt(s *FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []FullSolution {
 	var neighbors []FullSolution
 
-	for i := 1; i <= problemSize; i++ {
-		for j := i + 2; j <= problemSize; j++ {
+	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
+		for j := i + 2; j <= constants.PROBLEM_SIZE; j++ {
 			sn := s.solution
 
 			st := i
@@ -224,8 +173,8 @@ func GetFullNeighborhood2opt(s *FullSolution, distances *[problemSize + 1][probl
 
 /* PERTURB */
 func PerturbNeighborhood(s *Solution) {
-	r1 := (rand.Int() % problemSize) + 1
-	r2 := (rand.Int() % problemSize) + 1
+	r1 := (rand.Int() % constants.PROBLEM_SIZE) + 1
+	r2 := (rand.Int() % constants.PROBLEM_SIZE) + 1
 
 	st := int(math.Min(float64(r1), float64(r2)))
 	end := int(math.Max(float64(r1), float64(r2)))
@@ -249,28 +198,28 @@ func GetNeighborhoodFullInit() []FullSolution {
 	return neighbors
 }
 
-func Fitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int) int {
+func Fitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) int {
 	var fitness int
 	
-	for i := 1; i < problemSize; i++ {
+	for i := 1; i < constants.PROBLEM_SIZE; i++ {
 		fitness += distances[s[i]][s[i+1]]
 	}
 
-	fitness += distances[s[problemSize]][s[1]]
+	fitness += distances[s[constants.PROBLEM_SIZE]][s[1]]
 
 	return fitness
 }
 
-func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
+func FullFitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
-	if j - i != problemSize - 1 {
+	if j - i != constants.PROBLEM_SIZE - 1 {
 		if i > 1 {
 			fitness -= distances[s[i-1]][s[i]]
 			fitness += distances[s[i-1]][s[j]]
 		} else {
-			fitness -= distances[s[problemSize]][s[i]]
-			fitness += distances[s[problemSize]][s[j]]
+			fitness -= distances[s[constants.PROBLEM_SIZE]][s[i]]
+			fitness += distances[s[constants.PROBLEM_SIZE]][s[j]]
 		}
 
 		if j - i > 1 {
@@ -281,7 +230,7 @@ func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, 
 			fitness += distances[s[j-1]][s[i]]
 		}
 
-		if j < problemSize {
+		if j < constants.PROBLEM_SIZE {
 			fitness -= distances[s[j]][s[j+1]]
 			fitness += distances[s[i]][s[j+1]]
 		} else {
@@ -299,19 +248,19 @@ func FullFitness(s *Solution, distances *[problemSize + 1][problemSize + 1]int, 
 	return fitness
 }
 
-func FullFitness2opt(s *Solution, distances *[problemSize + 1][problemSize + 1]int, current_fitness, i, j int) int {
+func FullFitness2opt(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
-	if j - i != problemSize - 1 {
+	if j - i != constants.PROBLEM_SIZE - 1 {
 		if i > 1 {
 			fitness -= distances[s[i-1]][s[i]]
 			fitness += distances[s[i-1]][s[j]]
 		} else {
-			fitness -= distances[s[problemSize]][s[i]]
-			fitness += distances[s[problemSize]][s[j]]
+			fitness -= distances[s[constants.PROBLEM_SIZE]][s[i]]
+			fitness += distances[s[constants.PROBLEM_SIZE]][s[j]]
 		}
 
-		if j < problemSize {
+		if j < constants.PROBLEM_SIZE {
 			fitness -= distances[s[j]][s[j+1]]
 			fitness += distances[s[i]][s[j+1]]
 		} else {
@@ -348,12 +297,10 @@ func Run() error {
 	rand.Seed(time.Now().UTC().UnixNano())
 	start := time.Now()
 
-	var cities [problemSize + 1]City
-	var distances [problemSize + 1][problemSize + 1]int
+	var distances [constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int
 
-	ReadProblem(&cities)
-
-	CalculateDistances(&distances, &cities)
+	cities := reading.ReadProblem()
+	reading.CalculateDistances(&distances, &cities)
 
 	initialSolution := NewGreedyInitialSolution(&distances)
 	// initialSolution := NewRandomInitialSolution()
