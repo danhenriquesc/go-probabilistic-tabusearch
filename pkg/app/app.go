@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"errors"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/reading"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constructive"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/fitness"
@@ -9,7 +10,7 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/metaheuristics/tabu_search"
 )
 
-func Run() error {
+func Run(metaheuristic string) error {
 	var distances types.Distances
 
 	cities := reading.ReadProblem()
@@ -22,9 +23,15 @@ func Run() error {
 	fullInitialSolution := types.NewFullSolution(initialSolution, fitnessInitialSolution, 0, 0)
 	fmt.Println(fullInitialSolution)
 
-	err, fullBestSolution := tabu_search.Run(&distances, fullInitialSolution)
+	switch metaheuristic {
+		case "TABU_SEARCH":
+			err, fullBestSolution := tabu_search.Run(&distances, fullInitialSolution)
 
-	fmt.Println(fullBestSolution)
+			fmt.Println(fullBestSolution)
+			return err
+		default:
+			return errors.New("INVALID METAHEURISTIC")
+	}
 
-	return err
+	return nil
 }

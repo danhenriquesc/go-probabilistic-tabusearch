@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	if err := app.Run(); err != nil {
+	if err := app.Run("TABU_SEARCH"); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
