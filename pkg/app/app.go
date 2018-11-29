@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"math"
 	"time"
 	"math/rand"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constants"
@@ -16,20 +15,6 @@ const iterations = 700
 const pertubation = 3
 
 /* ALL */
-func GetNeighborhood(s *types.Solution) []types.Solution {
-	var neighbors []types.Solution
-
-	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
-			sn := *s
-			sn[i], sn[j] = sn[j], sn[i]
-			neighbors = append(neighbors, sn)
-		}
-	}
-
-	return neighbors
-}
-
 func GetFullNeighborhood(s *types.FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []types.FullSolution {
 	var neighbors []types.FullSolution
 
@@ -51,28 +36,6 @@ func GetFullNeighborhood(s *types.FullSolution, distances *[constants.PROBLEM_SI
 
 
 /* 2-OPT */
-func GetNeighborhood2opt(s *types.Solution) []types.Solution {
-	var neighbors []types.Solution
-
-	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
-			sn := *s
-
-			st := i
-			end := j
-			for st < end {
-				sn[st], sn[end] = sn[end], sn[st]
-				st++
-				end--
-			}
-
-			neighbors = append(neighbors, sn)
-		}
-	}
-
-	return neighbors
-}
-
 func GetFullNeighborhood2opt(s *types.FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []types.FullSolution {
 	var neighbors []types.FullSolution
 
@@ -95,27 +58,6 @@ func GetFullNeighborhood2opt(s *types.FullSolution, distances *[constants.PROBLE
 			neighbors = append(neighbors, fs)
 		}
 	}
-
-	return neighbors
-}
-
-/* PERTURB */
-func PerturbNeighborhood(s *types.Solution) {
-	r1 := (rand.Int() % constants.PROBLEM_SIZE) + 1
-	r2 := (rand.Int() % constants.PROBLEM_SIZE) + 1
-
-	st := int(math.Min(float64(r1), float64(r2)))
-	end := int(math.Max(float64(r1), float64(r2)))
-
-	for st < end {
-		s[st], s[end] = s[end], s[st]
-		st++
-		end--
-	}
-}
-
-func GetNeighborhoodInit() []types.Solution {
-	var neighbors []types.Solution
 
 	return neighbors
 }
@@ -232,19 +174,16 @@ func Run() error {
 	reading.CalculateDistances(&distances, &cities)
 
 	initialSolution := constructive.NewGreedyInitialSolution(&distances)
-	// initialSolution := NewRandomInitialSolution()
+	// initialSolution := constructive.NewRandomInitialSolution()
 	fitnessInitialSolution := Fitness(&initialSolution, &distances)
 	fullInitialSolution := types.NewFullSolution(initialSolution, fitnessInitialSolution, 0, 0)
 
 	fmt.Println(initialSolution)
 
-	// bestSolution := initialSolution
-	// fitnessBestSolution := Fitness(&bestSolution, &distances)
 	fullBestSolution := fullInitialSolution
 
 	fmt.Println(fullBestSolution)
-	// bestCandidate := initialSolution
-	// fitnessBestCandidate := fitnessBestSolution
+	
 	fullBestCandidate := fullInitialSolution
 	
 	var tabuList []string
@@ -254,9 +193,6 @@ func Run() error {
 	for x < iterations {
 		neighborhood := GetNeighborhoodFullInit()
 
-		// if x % 300 == 0 {
-		// 	PerturbNeighborhood(&bestCandidate)
-		// }
 		if x % pertubation == 0 {
 			neighborhood = GetFullNeighborhood(&fullBestCandidate, &distances)
 		} else {
@@ -265,7 +201,6 @@ func Run() error {
 
 		first := true
 		for _, candidate := range neighborhood {
-			// fitnessCandidate := Fitness(&candidate, &distances)
 			// notTabu := !Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
 			notTabu := !Contains(TokenizerChange(&candidate), &tabuList)
 
@@ -284,14 +219,11 @@ func Run() error {
 			tabuList = tabuList[1:]
 		}
 
-		// fmt.Println(fitnessBestSolution)
-
 		x += 1
 		fmt.Println(types.FullSolutionFitness(&fullBestSolution), types.FullSolutionFitness(&fullBestCandidate))
 	}
 
 	fmt.Println(fullBestSolution)
-	// fmt.Println(fitnessBestSolution)
 
 	fmt.Println(time.Since(start))
 
