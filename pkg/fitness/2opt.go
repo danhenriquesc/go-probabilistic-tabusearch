@@ -5,7 +5,7 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func Full2opt(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
+func Full2opt(s *types.Solution, distances *types.Distances, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
 	if j - i != constants.PROBLEM_SIZE - 1 {

@@ -16,7 +16,7 @@ func CalculateDistance(a, b types.City, ch chan int) {
 	ch <- Nint(math.Sqrt(math.Pow(a_x - b_x, 2) + math.Pow(a_y - b_y, 2)))
 }
 
-func CalculateDistances(distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, cities *[constants.PROBLEM_SIZE + 1]types.City) {
+func CalculateDistances(distances *types.Distances, cities *types.Cities) {
 	ch := make(chan int)
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {

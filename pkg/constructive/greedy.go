@@ -5,7 +5,7 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func NewGreedyInitialSolution(distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) types.Solution {
+func NewGreedyInitialSolution(distances *types.Distances) types.Solution {
 	var visited [constants.PROBLEM_SIZE + 1]bool
 	initialSolution := types.Solution{}
 

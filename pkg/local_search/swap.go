@@ -6,7 +6,7 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/fitness"
 )
 
-func NeighborhoodBySwap(s *types.FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []types.FullSolution {
+func NeighborhoodBySwap(s *types.FullSolution, distances *types.Distances) []types.FullSolution {
 	var neighbors []types.FullSolution
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {

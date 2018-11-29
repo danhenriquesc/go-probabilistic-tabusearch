@@ -5,7 +5,7 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func Simple(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) int {
+func Simple(s *types.Solution, distances *types.Distances) int {
 	var fitness int
 	
 	for i := 1; i < constants.PROBLEM_SIZE; i++ {

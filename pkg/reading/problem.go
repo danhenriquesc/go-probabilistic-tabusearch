@@ -9,8 +9,8 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func ReadProblem() [constants.PROBLEM_SIZE + 1]types.City {
-	var cities [constants.PROBLEM_SIZE + 1]types.City
+func ReadProblem() types.Cities {
+	var cities types.Cities
 
 	file, err := os.Open(constants.PROBLEM_FILE)
 	
