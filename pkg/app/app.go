@@ -15,10 +15,6 @@ const maxTabuSize = 50
 const iterations = 700
 const pertubation = 3
 
-type City struct {
-	x, y float64
-}
-
 /* ALL */
 func GetNeighborhood(s *types.Solution) []types.Solution {
 	var neighbors []types.Solution

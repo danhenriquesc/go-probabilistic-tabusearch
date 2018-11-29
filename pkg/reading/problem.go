@@ -6,10 +6,11 @@ import (
 	"strings"
 	"strconv"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constants"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func ReadProblem() [constants.PROBLEM_SIZE + 1]City {
-	var cities [constants.PROBLEM_SIZE + 1]City
+func ReadProblem() [constants.PROBLEM_SIZE + 1]types.City {
+	var cities [constants.PROBLEM_SIZE + 1]types.City
 
 	file, err := os.Open(constants.PROBLEM_FILE)
 	
@@ -36,7 +37,7 @@ func ReadProblem() [constants.PROBLEM_SIZE + 1]City {
 			panic(err)
 		}
 		
-		cities[index] = City{x, y}
+		cities[index] = types.NewCity(x, y)
 	}
 
 	if err := scanner.Err(); err != nil {
