@@ -10,33 +10,12 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/local_search"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/fitness"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/helpers"
 )
 
 const maxTabuSize = 50
 const iterations = 700
 const pertubation = 3
-
-func TokenizerSolution(s *types.Solution) string {
-	return fmt.Sprint(*s)
-}
-
-func TokenizerFullSolution(fs *types.FullSolution) string {
-	return fmt.Sprint(*fs)
-}
-
-func TokenizerChange(fs *types.FullSolution) string {
-	i, j := types.FullSolutionIndexes(fs)
-	return fmt.Sprint(i, "|", j)
-}
-
-func Contains(needed string, tabuList *[]string) bool{
-	for _, item := range *tabuList {
-		if item == needed {
-			return true
-		}
-	}
-	return false
-}
 
 func Run() error {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -75,8 +54,8 @@ func Run() error {
 
 		first := true
 		for _, candidate := range neighborhood {
-			// notTabu := !Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
-			notTabu := !Contains(TokenizerChange(&candidate), &tabuList)
+			// notTabu := !helpers.Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
+			notTabu := !helpers.Contains(helpers.TokenizerChange(&candidate), &tabuList)
 
 			if notTabu && (first || types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestCandidate) ){
 				fullBestCandidate = candidate
@@ -88,7 +67,7 @@ func Run() error {
 			fullBestSolution = fullBestCandidate
 		}
 
-		tabuList = append(tabuList, TokenizerChange(&fullBestCandidate))
+		tabuList = append(tabuList, helpers.TokenizerChange(&fullBestCandidate))
 		if len(tabuList) > maxTabuSize {
 			tabuList = tabuList[1:]
 		}
