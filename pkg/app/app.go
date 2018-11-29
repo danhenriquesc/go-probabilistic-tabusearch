@@ -9,23 +9,12 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constructive"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/local_search"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/fitness"
 )
 
 const maxTabuSize = 50
 const iterations = 700
 const pertubation = 3
-
-func Fitness(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) int {
-	var fitness int
-	
-	for i := 1; i < constants.PROBLEM_SIZE; i++ {
-		fitness += distances[s[i]][s[i+1]]
-	}
-
-	fitness += distances[s[constants.PROBLEM_SIZE]][s[1]]
-
-	return fitness
-}
 
 func TokenizerSolution(s *types.Solution) string {
 	return fmt.Sprint(*s)
@@ -60,7 +49,7 @@ func Run() error {
 
 	initialSolution := constructive.NewGreedyInitialSolution(&distances)
 	// initialSolution := constructive.NewRandomInitialSolution()
-	fitnessInitialSolution := Fitness(&initialSolution, &distances)
+	fitnessInitialSolution := fitness.Simple(&initialSolution, &distances)
 	fullInitialSolution := types.NewFullSolution(initialSolution, fitnessInitialSolution, 0, 0)
 
 	fmt.Println(initialSolution)
