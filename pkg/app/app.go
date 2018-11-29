@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constants"
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/reading"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/constructive"
+	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
 const maxTabuSize = 50
@@ -17,84 +19,9 @@ type City struct {
 	x, y float64
 }
 
-type Solution [constants.PROBLEM_SIZE + 1]int
-
-type FullSolution struct {
-	solution Solution
-	fitness int
-	i, j int
-}
-
-func PrintCities(cities *[constants.PROBLEM_SIZE + 1]City) {
-	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-		fmt.Printf("City %d: %.2f x %.2f\n", i, cities[i].x, cities[i].y)
-	}
-}
-
-
-
-
-/* ORDERED INITIAL */
-func NewInitialSolution() Solution {
-	initialSolution := Solution{}
-	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-		initialSolution[i] = i
-	}
-	return initialSolution
-}
-
-/* RAND INITIAL */
-func NewRandomInitialSolution() Solution {
-	initialSolution := Solution{}
-	rands := rand.Perm(constants.PROBLEM_SIZE)
-
-	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-		initialSolution[i] = rands[i-1] + 1
-	}
-
-	return initialSolution
-}
-
-/* GREEDY INITIAL */
-func NewGreedyInitialSolution(distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) Solution {
-	var visited [constants.PROBLEM_SIZE + 1]bool
-	initialSolution := Solution{}
-
-	current_city := 1
-	current_index := 1
-	initialSolution[current_index] = current_city
-	visited[current_city] = true
-	current_index++
-
-	all_visited := false
-
-	for all_visited != true {
-		min_distance := 1000000000
-		min_distance_city := -1
-		for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-			if distances[current_city][i] < min_distance && visited[i] == false {
-				min_distance = distances[current_city][i]
-				min_distance_city = i
-			}
-		}
-
-		current_city = min_distance_city
-		initialSolution[current_index] = current_city
-		visited[current_city] = true
-		current_index++
-
-		all_visited = true
-		for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-			all_visited = all_visited && visited[i]
-		}
-	}
-
-	return initialSolution
-}
-
 /* ALL */
-func GetNeighborhood(s *Solution) []Solution {
-	var neighbors []Solution
+func GetNeighborhood(s *types.Solution) []types.Solution {
+	var neighbors []types.Solution
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
@@ -107,15 +34,18 @@ func GetNeighborhood(s *Solution) []Solution {
 	return neighbors
 }
 
-func GetFullNeighborhood(s *FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []FullSolution {
-	var neighbors []FullSolution
+func GetFullNeighborhood(s *types.FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []types.FullSolution {
+	var neighbors []types.FullSolution
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
-			sn := s.solution
+			sn := types.FullSolutionSolution(s)
 			sn[i], sn[j] = sn[j], sn[i]
-			fs := FullSolution{sn, FullFitness(&s.solution, distances, s.fitness, i, j), i, j}
-			// fs := FullSolution{sn, Fitness(&sn, distances)}
+
+			s_before :=  types.FullSolutionSolution(s)
+			fitness := FullFitness(&s_before, distances, types.FullSolutionFitness(s), i, j)
+			fs := types.NewFullSolution(sn, fitness, i, j)
+
 			neighbors = append(neighbors, fs)
 		}
 	}
@@ -125,8 +55,8 @@ func GetFullNeighborhood(s *FullSolution, distances *[constants.PROBLEM_SIZE + 1
 
 
 /* 2-OPT */
-func GetNeighborhood2opt(s *Solution) []Solution {
-	var neighbors []Solution
+func GetNeighborhood2opt(s *types.Solution) []types.Solution {
+	var neighbors []types.Solution
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 1; j <= constants.PROBLEM_SIZE; j++ {
@@ -147,12 +77,12 @@ func GetNeighborhood2opt(s *Solution) []Solution {
 	return neighbors
 }
 
-func GetFullNeighborhood2opt(s *FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []FullSolution {
-	var neighbors []FullSolution
+func GetFullNeighborhood2opt(s *types.FullSolution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) []types.FullSolution {
+	var neighbors []types.FullSolution
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 2; j <= constants.PROBLEM_SIZE; j++ {
-			sn := s.solution
+			sn := types.FullSolutionSolution(s)
 
 			st := i
 			end := j
@@ -162,8 +92,10 @@ func GetFullNeighborhood2opt(s *FullSolution, distances *[constants.PROBLEM_SIZE
 				end--
 			}
 
-			fs := FullSolution{sn, FullFitness2opt(&s.solution, distances, s.fitness, i, j), i, j}
-			// fs := FullSolution{sn, Fitness(&sn, distances)}
+			s_before := types.FullSolutionSolution(s)
+			fitness := FullFitness2opt(&s_before, distances, types.FullSolutionFitness(s), i, j)
+			fs := types.NewFullSolution(sn, fitness, i, j)
+
 			neighbors = append(neighbors, fs)
 		}
 	}
@@ -172,7 +104,7 @@ func GetFullNeighborhood2opt(s *FullSolution, distances *[constants.PROBLEM_SIZE
 }
 
 /* PERTURB */
-func PerturbNeighborhood(s *Solution) {
+func PerturbNeighborhood(s *types.Solution) {
 	r1 := (rand.Int() % constants.PROBLEM_SIZE) + 1
 	r2 := (rand.Int() % constants.PROBLEM_SIZE) + 1
 
@@ -186,19 +118,19 @@ func PerturbNeighborhood(s *Solution) {
 	}
 }
 
-func GetNeighborhoodInit() []Solution {
-	var neighbors []Solution
+func GetNeighborhoodInit() []types.Solution {
+	var neighbors []types.Solution
 
 	return neighbors
 }
 
-func GetNeighborhoodFullInit() []FullSolution {
-	var neighbors []FullSolution
+func GetNeighborhoodFullInit() []types.FullSolution {
+	var neighbors []types.FullSolution
 
 	return neighbors
 }
 
-func Fitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) int {
+func Fitness(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int) int {
 	var fitness int
 	
 	for i := 1; i < constants.PROBLEM_SIZE; i++ {
@@ -210,7 +142,7 @@ func Fitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROB
 	return fitness
 }
 
-func FullFitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
+func FullFitness(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
 	if j - i != constants.PROBLEM_SIZE - 1 {
@@ -248,7 +180,7 @@ func FullFitness(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.
 	return fitness
 }
 
-func FullFitness2opt(s *Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
+func FullFitness2opt(s *types.Solution, distances *[constants.PROBLEM_SIZE + 1][constants.PROBLEM_SIZE + 1]int, current_fitness, i, j int) int {
 	fitness := current_fitness
 	
 	if j - i != constants.PROBLEM_SIZE - 1 {
@@ -272,16 +204,17 @@ func FullFitness2opt(s *Solution, distances *[constants.PROBLEM_SIZE + 1][consta
 	return fitness
 }
 
-func TokenizerSolution(s *Solution) string {
+func TokenizerSolution(s *types.Solution) string {
 	return fmt.Sprint(*s)
 }
 
-func TokenizerFullSolution(fs *FullSolution) string {
+func TokenizerFullSolution(fs *types.FullSolution) string {
 	return fmt.Sprint(*fs)
 }
 
-func TokenizerChange(fs *FullSolution) string {
-	return fmt.Sprint(fs.i,"|",fs.j)
+func TokenizerChange(fs *types.FullSolution) string {
+	i, j := types.FullSolutionIndexes(fs)
+	return fmt.Sprint(i, "|", j)
 }
 
 func Contains(needed string, tabuList *[]string) bool{
@@ -302,10 +235,10 @@ func Run() error {
 	cities := reading.ReadProblem()
 	reading.CalculateDistances(&distances, &cities)
 
-	initialSolution := NewGreedyInitialSolution(&distances)
+	initialSolution := constructive.NewGreedyInitialSolution(&distances)
 	// initialSolution := NewRandomInitialSolution()
 	fitnessInitialSolution := Fitness(&initialSolution, &distances)
-	fullInitialSolution := FullSolution{initialSolution, fitnessInitialSolution, 0, 0}
+	fullInitialSolution := types.NewFullSolution(initialSolution, fitnessInitialSolution, 0, 0)
 
 	fmt.Println(initialSolution)
 
@@ -319,7 +252,7 @@ func Run() error {
 	fullBestCandidate := fullInitialSolution
 	
 	var tabuList []string
-	// tabuList = append(tabuList, TokenizerFullSolution(&fullBestCandidate))
+	// tabuList = append(tabuList, Tokenizertypes.FullSolution(&fullBestCandidate))
 
 	x := 1
 	for x < iterations {
@@ -337,16 +270,16 @@ func Run() error {
 		first := true
 		for _, candidate := range neighborhood {
 			// fitnessCandidate := Fitness(&candidate, &distances)
-			// notTabu := !Contains(TokenizerFullSolution(&candidate), &tabuList)
+			// notTabu := !Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
 			notTabu := !Contains(TokenizerChange(&candidate), &tabuList)
 
-			if notTabu && (first || candidate.fitness < fullBestCandidate.fitness) {
+			if notTabu && (first || types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestCandidate) ){
 				fullBestCandidate = candidate
 				first = false
 			}
 		}
 
-		if fullBestCandidate.fitness < fullBestSolution.fitness {
+		if types.FullSolutionFitness(&fullBestCandidate) < types.FullSolutionFitness(&fullBestSolution) {
 			fullBestSolution = fullBestCandidate
 		}
 
@@ -358,7 +291,7 @@ func Run() error {
 		// fmt.Println(fitnessBestSolution)
 
 		x += 1
-		fmt.Println(fullBestSolution.fitness, fullBestCandidate.fitness)
+		fmt.Println(types.FullSolutionFitness(&fullBestSolution), types.FullSolutionFitness(&fullBestCandidate))
 	}
 
 	fmt.Println(fullBestSolution)
