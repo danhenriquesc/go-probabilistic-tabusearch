@@ -6,11 +6,12 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/helpers"
 )
 
-const maxTabuSize = 50
-const iterations = 700
-const pertubation = 3
-
 func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (error, types.FullSolution){
+	config := load_config("berlin52.tsp.txt")
+
+	maxTabuSize := config["maxTabuSize"]
+	iterations := config["iterations"]
+	pertubation := config["pertubation"]
 	// fmt.Println(initialSolution)
 
 	fullBestSolution := fullInitialSolution
