@@ -14,6 +14,5 @@ func TokenizerFullSolution(fs *types.FullSolution) string {
 }
 
 func TokenizerChange(fs *types.FullSolution) string {
-	i, j := types.FullSolutionIndexes(fs)
-	return fmt.Sprint(i, "|", j)
+	return fmt.Sprint(fs.I, "|", fs.J)
 }

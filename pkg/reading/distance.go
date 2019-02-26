@@ -11,15 +11,11 @@ func Nint(n float64) int {
 }
 
 func CalculateDistanceParallel(a, b types.City, ch chan int) {
-	a_x, a_y := types.CityXY(a)
-	b_x, b_y := types.CityXY(b)
-	ch <- Nint(math.Sqrt(math.Pow(a_x - b_x, 2) + math.Pow(a_y - b_y, 2)))
+	ch <- Nint(math.Sqrt(math.Pow(a.X - b.X, 2) + math.Pow(a.Y - b.Y, 2)))
 }
 
 func CalculateDistance(a, b types.City) int {
-	a_x, a_y := types.CityXY(a)
-	b_x, b_y := types.CityXY(b)
-	return Nint(math.Sqrt(math.Pow(a_x - b_x, 2) + math.Pow(a_y - b_y, 2)))
+	return Nint(math.Sqrt(math.Pow(a.X - b.X, 2) + math.Pow(a.Y - b.Y, 2)))
 }
 
 func CalculateDistances(distances *types.Distances, cities *types.Cities) {

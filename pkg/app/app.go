@@ -20,7 +20,7 @@ func Run(metaheuristic string) error {
 	// initialSolution := constructive.NewRandomInitialSolution()
 
 	fitnessInitialSolution := fitness.Simple(&initialSolution, &distances)
-	fullInitialSolution := types.NewFullSolution(initialSolution, fitnessInitialSolution, 0, 0)
+	fullInitialSolution := types.FullSolution{initialSolution, fitnessInitialSolution, 0, 0}
 	fmt.Println(fullInitialSolution)
 
 	switch metaheuristic {

@@ -11,7 +11,7 @@ func NeighborhoodBy2opt(s *types.FullSolution, distances *types.Distances) []typ
 
 	for i := 1; i <= constants.PROBLEM_SIZE; i++ {
 		for j := i + 2; j <= constants.PROBLEM_SIZE; j++ {
-			sn := types.FullSolutionSolution(s)
+			sn := s.Solution
 
 			st := i
 			end := j
@@ -21,9 +21,9 @@ func NeighborhoodBy2opt(s *types.FullSolution, distances *types.Distances) []typ
 				end--
 			}
 
-			s_before := types.FullSolutionSolution(s)
-			fitness := fitness.Full2opt(&s_before, distances, types.FullSolutionFitness(s), i, j)
-			fs := types.NewFullSolution(sn, fitness, i, j)
+			s_before := s.Solution
+			fitness := fitness.Full2opt(&s_before, distances, s.Fitness, i, j)
+			fs := types.FullSolution{sn, fitness, i, j}
 
 			neighbors = append(neighbors, fs)
 		}

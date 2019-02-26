@@ -37,7 +37,7 @@ func ReadProblem() types.Cities {
 			panic(err)
 		}
 		
-		cities[index] = types.NewCity(x, y)
+		cities[index] = types.City{x, y}
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -50,10 +50,10 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 				// notTabu := !helpers.Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
 				notTabu := !helpers.Contains(helpers.TokenizerChange(&candidate), &tabuList)
 
-				if notTabu && (first || types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestCandidate) ){
+				if notTabu && (first || candidate.Fitness < fullBestCandidate.Fitness){
 					fullBestCandidate = candidate
 					first = false
-				} else if (!notTabu && types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestSolution) ) { // Aspiração
+				} else if (!notTabu && candidate.Fitness < fullBestSolution.Fitness ) { // Aspiração
 					fullBestCandidate = candidate
 					break
 				}
@@ -72,11 +72,11 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 					// notTabu := !helpers.Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
 					notTabu := !helpers.Contains(helpers.TokenizerChange(&candidate), &tabuList)
 
-					if notTabu && (first || types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&tmpBestCandidate) ){
+					if notTabu && (first || candidate.Fitness < tmpBestCandidate.Fitness ){
 						goodCandidates = append(goodCandidates, candidate)
 						tmpBestCandidate = candidate
 						first = false
-					} else if (!notTabu && types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestSolution) ) { // Aspiração
+					} else if (!notTabu && candidate.Fitness < fullBestSolution.Fitness ) { // Aspiração
 						goodCandidates = append(goodCandidates, candidate)
 						tmpBestCandidate = candidate
 					}
@@ -87,17 +87,17 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 						fmt.Println(len(goodCandidates))
 					}
 					sort.Slice(goodCandidates, func(a, b int) bool {
-						fitA := types.FullSolutionFitness(&goodCandidates[a])
-						fitB := types.FullSolutionFitness(&goodCandidates[b])
+						fitA := goodCandidates[a].Fitness
+						fitB := goodCandidates[b].Fitness
 						return fitA < fitB
 					})
-					improvement := types.FullSolutionFitness(&fullBestCandidate) - types.FullSolutionFitness(&goodCandidates[0])
+					improvement := fullBestCandidate.Fitness - goodCandidates[0].Fitness
 					if improvement > 0 {
 						tmpGoodCandidates := goodCandidates
 						goodCandidates :=  goodCandidates[:0]
 
 						for _, goodCandidate := range tmpGoodCandidates {
-							improvement := types.FullSolutionFitness(&fullBestCandidate) - types.FullSolutionFitness(&goodCandidate)
+							improvement := fullBestCandidate.Fitness - goodCandidate.Fitness
 							if improvement > 0 {
 								goodCandidates = append(goodCandidates, goodCandidate)
 							}
@@ -119,8 +119,8 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 						fmt.Println("GOOD CANDIDATES:")
 					}
 					for _, goodCandidate := range goodCandidates {
-						improvement := types.FullSolutionFitness(&fullBestCandidate) - types.FullSolutionFitness(&goodCandidate)
-						i, j := types.FullSolutionIndexes(&goodCandidate)
+						improvement := fullBestCandidate.Fitness- goodCandidate.Fitness
+						i, j := goodCandidate.I, goodCandidate.J
 						if constants.MULTI_IMPROVEMENT_DEBUG {
 							fmt.Println(i, j, improvement)
 						}
@@ -128,7 +128,7 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 						blocked := false
 
 						for _, selected := range selecteds {
-							s_i, s_j := types.FullSolutionIndexes(&selected)
+							s_i, s_j := selected.I, selected.J
 
 							//conflict?
 							// if !((i < s_i && j < s_i) || (i > s_j && j > s_j)) {
@@ -164,8 +164,8 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 						fmt.Println("SELECTEDS:")
 					}
 					for _, selected := range selecteds {
-						improvement := types.FullSolutionFitness(&fullBestCandidate) - types.FullSolutionFitness(&selected)
-						i, j := types.FullSolutionIndexes(&selected)
+						improvement := fullBestCandidate.Fitness - selected.Fitness
+						i, j := selected.I, selected.J
 						if constants.MULTI_IMPROVEMENT_DEBUG {
 							fmt.Println("I:", i, "J:", j, "DIFF:", improvement)
 						}
@@ -179,8 +179,8 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 				}
 
 				for _, selected := range selecteds {
-					sn := types.FullSolutionSolution(&fullBestCandidate)
-					i, j := types.FullSolutionIndexes(&selected)
+					sn := fullBestCandidate.Solution
+					i, j := selected.I, selected.J
 
 					st := i
 					end := j
@@ -190,9 +190,9 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 						end--
 					}
 
-					s_before := types.FullSolutionSolution(&fullBestCandidate)
-					fitness := fitness.Full2opt(&s_before, distances, types.FullSolutionFitness(&fullBestCandidate), i, j)
-					fullBestCandidate = types.NewFullSolution(sn, fitness, i, j)
+					s_before := fullBestCandidate.Solution
+					fitness := fitness.Full2opt(&s_before, distances, fullBestCandidate.Fitness, i, j)
+					fullBestCandidate = types.FullSolution{sn, fitness, i, j}
 				}
 
 				if constants.MULTI_IMPROVEMENT_DEBUG {
@@ -207,10 +207,10 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 					// notTabu := !helpers.Contains(Tokenizertypes.FullSolution(&candidate), &tabuList)
 					notTabu := !helpers.Contains(helpers.TokenizerChange(&candidate), &tabuList)
 
-					if notTabu && (first || types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestCandidate) ){
+					if notTabu && (first || candidate.Fitness < fullBestCandidate.Fitness){
 						fullBestCandidate = candidate
 						first = false
-					} else if (!notTabu && types.FullSolutionFitness(&candidate) < types.FullSolutionFitness(&fullBestSolution) ) { // Aspiração
+					} else if (!notTabu && candidate.Fitness < fullBestSolution.Fitness ) { // Aspiração
 						fullBestCandidate = candidate
 						break
 					}
@@ -219,7 +219,7 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 		}
 
 
-		if types.FullSolutionFitness(&fullBestCandidate) < types.FullSolutionFitness(&fullBestSolution) {
+		if fullBestCandidate.Fitness< fullBestSolution.Fitness {
 			fullBestSolution = fullBestCandidate
 		}
 
@@ -247,34 +247,34 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 		// 	}
 		// }
 
-		if !gap50beat && float64(types.FullSolutionFitness(&fullBestSolution)) <= gap50{
+		if !gap50beat && float64(fullBestSolution.Fitness) <= gap50{
 			fmt.Printf("GAP 50 in iteration %d\n", iteration)
 			gap50beat = true
 		}
 
-		if !gap25beat && float64(types.FullSolutionFitness(&fullBestSolution)) <= gap25{
+		if !gap25beat && float64(fullBestSolution.Fitness) <= gap25{
 			fmt.Printf("GAP 25 in iteration %d\n", iteration)
 			gap25beat = true
 		}
 
-		if !gap10beat && float64(types.FullSolutionFitness(&fullBestSolution)) <= gap10{
+		if !gap10beat && float64(fullBestSolution.Fitness) <= gap10{
 			fmt.Printf("GAP 10 in iteration %d\n", iteration)
 			gap10beat = true
 		}
 
-		if !gap1beat && float64(types.FullSolutionFitness(&fullBestSolution)) <= gap1{
+		if !gap1beat && float64(fullBestSolution.Fitness) <= gap1{
 			fmt.Printf("GAP 1 in iteration %d\n", iteration)
 			gap1beat = true
 		}
 
-		if !gap0beat && float64(types.FullSolutionFitness(&fullBestSolution)) <= gap0{
+		if !gap0beat && float64(fullBestSolution.Fitness) <= gap0{
 			fmt.Printf("OPTIMAL in iteration %d\n", iteration)
 			gap0beat = true
 		}
 
 
 		iteration += 1
-		// fmt.Println(types.FullSolutionFitness(fullBestSolution), types.FullSolutionFitness(fullBestCandidate))
+		// fmt.Println(fullBestSolution.Fitness, fullBestCandidate.Fitness)
 	}
 
 	return nil, fullBestSolution
