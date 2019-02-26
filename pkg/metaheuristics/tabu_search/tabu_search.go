@@ -11,24 +11,11 @@ import (
 )
 
 func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (error, types.FullSolution){
-	config := load_config(constants.PROBLEM_NAME)
+	config := loadConfig(constants.PROBLEM_NAME)
 
-	maxTabuSize := config["maxTabuSize"]
-	iterations := config["iterations"]
-	pertubation := config["pertubation"]
-	optimal := config["optimal"]
+	maxTabuSize, iterations, pertubation, optimal := config["maxTabuSize"], config["iterations"], config["pertubation"], config["optimal"]
 
-	gap0 := float64(optimal) * 1.0
-	gap0beat := false
-	gap1 := float64(optimal) * 1.01
-	gap1beat := false
-	gap10 := float64(optimal) * 1.1
-	gap10beat := false
-	gap25 := float64(optimal) * 1.25
-	gap25beat := false
-	gap50 := float64(optimal) * 1.5
-	gap50beat := false
-	// fmt.Println(initialSolution)
+	gapCounter := helpers.NewGapCounter(optimal, []float64{1.5, 1.25, 1.1, 1.01, 1.0})
 
 	fullBestSolution := fullInitialSolution
 	fullBestCandidate := fullInitialSolution
@@ -247,31 +234,7 @@ func Run(distances *types.Distances, fullInitialSolution types.FullSolution) (er
 		// 	}
 		// }
 
-		if !gap50beat && float64(fullBestSolution.Fitness) <= gap50{
-			fmt.Printf("GAP 50 in iteration %d\n", iteration)
-			gap50beat = true
-		}
-
-		if !gap25beat && float64(fullBestSolution.Fitness) <= gap25{
-			fmt.Printf("GAP 25 in iteration %d\n", iteration)
-			gap25beat = true
-		}
-
-		if !gap10beat && float64(fullBestSolution.Fitness) <= gap10{
-			fmt.Printf("GAP 10 in iteration %d\n", iteration)
-			gap10beat = true
-		}
-
-		if !gap1beat && float64(fullBestSolution.Fitness) <= gap1{
-			fmt.Printf("GAP 1 in iteration %d\n", iteration)
-			gap1beat = true
-		}
-
-		if !gap0beat && float64(fullBestSolution.Fitness) <= gap0{
-			fmt.Printf("OPTIMAL in iteration %d\n", iteration)
-			gap0beat = true
-		}
-
+		gapCounter.CheckBeats(float64(fullBestSolution.Fitness), iteration)
 
 		iteration += 1
 		// fmt.Println(fullBestSolution.Fitness, fullBestCandidate.Fitness)

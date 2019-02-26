@@ -1,6 +1,6 @@
 package tabu_search
 
-func load_config(instance string) map[string]int {
+func loadConfig(instance string) map[string]int {
 	var config map[string]int
 	config = make(map[string]int)
 
