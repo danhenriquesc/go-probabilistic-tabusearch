@@ -7,7 +7,9 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func NewRandomInitialSolution() types.Solution {
+type RandomConstructive struct {}
+
+func (rc RandomConstructive) generateInitialSolution() types.Solution {
 	rand.Seed(time.Now().UTC().UnixNano())
 	initialSolution := types.Solution{}
 	rands := rand.Perm(constants.PROBLEM_SIZE)

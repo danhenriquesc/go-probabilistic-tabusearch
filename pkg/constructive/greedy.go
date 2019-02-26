@@ -5,7 +5,11 @@ import (
 	"github.com/danhenriquesc/go-probabilistic-tabusearch/pkg/types"
 )
 
-func NewGreedyInitialSolution(distances *types.Distances) types.Solution {
+type GreedyConstructive struct {
+	Distances *types.Distances	
+}
+
+func (gc GreedyConstructive) generateInitialSolution() types.Solution {
 	var visited [constants.PROBLEM_SIZE + 1]bool
 	initialSolution := types.Solution{}
 
@@ -21,8 +25,8 @@ func NewGreedyInitialSolution(distances *types.Distances) types.Solution {
 		min_distance := 1000000000
 		min_distance_city := -1
 		for i := 1; i <= constants.PROBLEM_SIZE; i++ {
-			if distances[current_city][i] < min_distance && visited[i] == false {
-				min_distance = distances[current_city][i]
+			if gc.Distances[current_city][i] < min_distance && visited[i] == false {
+				min_distance = gc.Distances[current_city][i]
 				min_distance_city = i
 			}
 		}

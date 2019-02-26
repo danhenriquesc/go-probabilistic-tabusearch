@@ -16,8 +16,8 @@ func Run(metaheuristic string) error {
 	cities := reading.ReadProblem()
 	reading.CalculateDistances(&distances, &cities)
 
-	initialSolution := constructive.NewGreedyInitialSolution(&distances)
-	// initialSolution := constructive.NewRandomInitialSolution()
+	constructiveMetaheuristic := constructive.GreedyConstructive{&distances}
+	initialSolution := constructive.NewInitialSolution(constructiveMetaheuristic)
 
 	fitnessInitialSolution := fitness.Simple(&initialSolution, &distances)
 	fullInitialSolution := types.FullSolution{initialSolution, fitnessInitialSolution, 0, 0}
